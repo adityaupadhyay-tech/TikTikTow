@@ -86,7 +86,7 @@ export default function SettingsPage() {
     )
   }
 
-  const [active, setActive] = useState<'general'|'clients'|'companies'|'departments'|'employees'|'leave'|'roles'|'notifications'|'billing'|'integrations'|'workflow'>('general')
+  const [active, setActive] = useState<'company-info'|'company-departments'|'company-clients'|'company-bank'|'company-holidays'|'company-integrations'|'employee-info'|'employee-roles'|'employee-access'|'system-timesheets'|'system-approvals'|'system-notifications'|'system-security'|'system-integrations'>('company-info')
 
   const SidebarLink = ({ id, label }: { id: typeof active; label: string }) => (
     <button
@@ -99,6 +99,9 @@ export default function SettingsPage() {
   )
 
   const [clientModalOpen, setClientModalOpen] = useState(false)
+  const [bankModalOpen, setBankModalOpen] = useState(false)
+  const [roleAddModalOpen, setRoleAddModalOpen] = useState(false)
+  const [roleEditModalOpen, setRoleEditModalOpen] = useState(false)
   const [holidayModalOpen, setHolidayModalOpen] = useState(false)
   const [leaveRuleModalOpen, setLeaveRuleModalOpen] = useState(false)
   const [employeeLeaveModalOpen, setEmployeeLeaveModalOpen] = useState(false)
@@ -117,24 +120,42 @@ export default function SettingsPage() {
         <p className="text-sm text-gray-600">Configure system preferences. All controls below are placeholders only.</p>
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           <aside className="md:col-span-3 lg:col-span-2">
-            <div className="rounded-lg border bg-white p-2 space-y-1">
-              <SidebarLink id="general" label="General Settings" />
-              <SidebarLink id="clients" label="Clients" />
-              <SidebarLink id="companies" label="Companies" />
-              <SidebarLink id="departments" label="Departments" />
-              <SidebarLink id="employees" label="Employees" />
-              <SidebarLink id="leave" label="Leave & Holiday Management" />
-              <SidebarLink id="roles" label="Roles & Permissions" />
-              <SidebarLink id="notifications" label="Notifications" />
-              <SidebarLink id="billing" label="Billing & Invoicing" />
-              <SidebarLink id="integrations" label="Integrations" />
-              <SidebarLink id="workflow" label="Timesheet Approval Workflow" />
+            <div className="rounded-lg border bg-white p-3 space-y-4">
+              <div>
+                <div className="px-2 pb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">Company Settings</div>
+                <div className="space-y-1">
+                  <SidebarLink id="company-info" label="Company Info" />
+                  <SidebarLink id="company-departments" label="Departments" />
+                  <SidebarLink id="company-clients" label="Clients" />
+                  <SidebarLink id="company-bank" label="Bank Accounts" />
+                  <SidebarLink id="company-holidays" label="Holidays & Leaves" />
+                  <SidebarLink id="company-integrations" label="Integrations" />
+                </div>
+              </div>
+              <div>
+                <div className="px-2 pb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">Employee Settings</div>
+                <div className="space-y-1">
+                  <SidebarLink id="employee-info" label="Employee Info" />
+                  <SidebarLink id="employee-roles" label="Roles & Permissions" />
+                  <SidebarLink id="employee-access" label="Access Control" />
+                </div>
+              </div>
+              <div>
+                <div className="px-2 pb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">System Settings</div>
+                <div className="space-y-1">
+                  <SidebarLink id="system-timesheets" label="Timesheets" />
+                  <SidebarLink id="system-approvals" label="Approvals" />
+                  <SidebarLink id="system-notifications" label="Notifications" />
+                  <SidebarLink id="system-security" label="Security" />
+                  <SidebarLink id="system-integrations" label="Integrations" />
+                </div>
+              </div>
             </div>
           </aside>
           <section className="md:col-span-9 lg:col-span-10 space-y-6">
             <Tabs value={active} onValueChange={(v) => setActive(v as typeof active)} className="space-y-6">
 
-          <TabsContent value="general" className="space-y-6">
+          <TabsContent value="company-info" className="space-y-6">
             <Section title="General Settings" description="Basic preferences for your organization">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -171,6 +192,45 @@ export default function SettingsPage() {
               <Button type="button">Save</Button>
             </div>
           </CardFooter>
+        </Section>
+          </TabsContent>
+          <TabsContent value="company-bank" className="space-y-6">
+        <Section title="Bank Accounts" description="Manage company bank accounts">
+          <div className="flex justify-end">
+            <Button variant="outline" type="button" onClick={()=>setBankModalOpen(true)}>Add Bank Account</Button>
+          </div>
+          <div className="overflow-x-auto rounded-md border bg-white">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-left">
+                <tr>
+                  <th className="px-4 py-2">Account Holder</th>
+                  <th className="px-4 py-2">Bank Name</th>
+                  <th className="px-4 py-2">IFSC</th>
+                  <th className="px-4 py-2">Account Number</th>
+                  <th className="px-4 py-2 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { holder: 'TechCorp India Pvt Ltd', bank: 'HDFC Bank', ifsc: 'HDFC0001234', number: 'XXXXXX1234' },
+                  { holder: 'TechCorp US Inc.', bank: 'Chase', ifsc: 'CHASUS33XXX', number: 'XXXXXX5678' },
+                ].map((a) => (
+                  <tr key={a.number} className="border-t">
+                    <td className="px-4 py-2">{a.holder}</td>
+                    <td className="px-4 py-2">{a.bank}</td>
+                    <td className="px-4 py-2">{a.ifsc}</td>
+                    <td className="px-4 py-2">{a.number}</td>
+                    <td className="px-4 py-2">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" size="sm" type="button" onClick={()=>setBankModalOpen(true)}>Edit</Button>
+                        <Button variant="outline" size="sm" type="button">Delete</Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Section>
           </TabsContent>
           <Modal open={holidayModalOpen} title="Add Holiday" onClose={()=>setHolidayModalOpen(false)}>
@@ -321,7 +381,7 @@ export default function SettingsPage() {
         </Section>
           </TabsContent>
 
-          <TabsContent value="notifications" className="space-y-6">
+          <TabsContent value="system-notifications" className="space-y-6">
         <Section title="Notifications & Alerts" description="Configure delivery and alert preferences">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -359,7 +419,7 @@ export default function SettingsPage() {
         </Section>
           </TabsContent>
 
-          <TabsContent value="roles" className="space-y-6">
+          <TabsContent value="employee-roles" className="space-y-6">
         <Section title="Roles & Permissions" description="Assign roles and manage permissions">
           <div className="space-y-3 text-sm">
             <div className="rounded-md border p-3">
@@ -398,7 +458,7 @@ export default function SettingsPage() {
         </Section>
           </TabsContent>
 
-          <TabsContent value="integrations" className="space-y-6">
+          <TabsContent value="company-integrations" className="space-y-6">
         <Section title="Integrations" description="Enable or disable third-party integrations">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <ToggleRow label="Google Calendar Sync" checked={googleCalendarEnabled} onChange={() => setGoogleCalendarEnabled((v) => !v)} />
@@ -415,7 +475,7 @@ export default function SettingsPage() {
         </Section>
           </TabsContent>
         
-          <TabsContent value="leave" className="space-y-6">
+          <TabsContent value="company-holidays" className="space-y-6">
         <Section title="Leave & Holiday Management" description="Company calendars, leave policies, and overrides">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             {['Paid Holidays','Optional Holidays','Sick Leave','Unpaid Leave'].map((label) => (
@@ -496,7 +556,7 @@ export default function SettingsPage() {
           </CardFooter>
         </Section>
           </TabsContent>
-          <TabsContent value="companies" className="space-y-6">
+          <TabsContent value="company-clients" className="space-y-6">
         <Section title="Companies" description="Filter by client and manage companies">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
@@ -540,7 +600,7 @@ export default function SettingsPage() {
         </Section>
           </TabsContent>
 
-          <TabsContent value="departments" className="space-y-6">
+          <TabsContent value="company-departments" className="space-y-6">
         <Section title="Departments" description="Filter by company and manage departments">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
@@ -585,7 +645,7 @@ export default function SettingsPage() {
         </Section>
           </TabsContent>
 
-          <TabsContent value="employees" className="space-y-6">
+          <TabsContent value="employee-info" className="space-y-6">
         <Section title="Employees" description="Filter by department and manage employees">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
@@ -679,7 +739,7 @@ export default function SettingsPage() {
         </Section>
           </TabsContent>
 
-          <TabsContent value="clients" className="space-y-6">
+          <TabsContent value="company-clients" className="space-y-6">
         <Section title="Clients" description="Manage clients and view related companies">
           <div className="flex justify-end">
             <Button variant="outline" type="button" onClick={() => setClientModalOpen(true)}>Add Client</Button>
@@ -733,6 +793,26 @@ export default function SettingsPage() {
                   <option>EUR</option>
                   <option>INR</option>
                 </select>
+              </div>
+            </div>
+          </Modal>
+          <Modal open={bankModalOpen} title="Add Bank Account" onClose={()=>setBankModalOpen(false)}>
+            <div className="grid grid-cols-1 gap-3 text-sm">
+              <div>
+                <label className="mb-1 block text-sm font-medium">Account Holder</label>
+                <input className="w-full rounded-md border px-3 py-2" placeholder="Company Name" />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Bank Name</label>
+                <input className="w-full rounded-md border px-3 py-2" placeholder="Bank" />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">IFSC / SWIFT</label>
+                <input className="w-full rounded-md border px-3 py-2" placeholder="HDFC0001234 / CHASUS33XXX" />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Account Number</label>
+                <input className="w-full rounded-md border px-3 py-2" placeholder="0000 0000 0000" />
               </div>
             </div>
           </Modal>

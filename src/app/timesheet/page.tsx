@@ -40,7 +40,7 @@ function TimesheetContent() {
 
   return (
     <div className="min-h-screen bg-gray-50/50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+      <div className="mx-auto px-5 py-6">
         {/* Header Section */}
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -70,7 +70,7 @@ function TimesheetContent() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="border-b border-gray-200">
-              <div className="px-4 py-4">
+              <div className="px-5 py-4">
                 <TabsList className="grid w-full grid-cols-3 bg-gray-100 p-1 rounded-lg">
                   <TabsTrigger 
                     value="overview" 
@@ -97,7 +97,7 @@ function TimesheetContent() {
               </div>
             </div>
 
-            <div className="p-4">
+            <div className="p-5">
               <TabsContent value="overview" className="space-y-6 mt-0">
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                   <div className="space-y-6">

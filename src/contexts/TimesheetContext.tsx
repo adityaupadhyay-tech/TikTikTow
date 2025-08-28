@@ -24,6 +24,7 @@ const mockProjects: Project[] = [
     id: '1',
     name: 'Website Redesign',
     description: 'Redesigning the company website',
+    startDate: '2024-01-01',
     status: 'active',
     color: '#3B82F6'
   },
@@ -31,6 +32,7 @@ const mockProjects: Project[] = [
     id: '2',
     name: 'Mobile App Development',
     description: 'Building a new mobile application',
+    startDate: '2024-01-15',
     status: 'active',
     color: '#10B981'
   },
@@ -38,6 +40,7 @@ const mockProjects: Project[] = [
     id: '3',
     name: 'Database Migration',
     description: 'Migrating to new database system',
+    startDate: '2024-02-01',
     status: 'on-hold',
     color: '#F59E0B'
   }

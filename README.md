@@ -1,4 +1,4 @@
-# Timesheet Management System
+# TikTikTow - Timesheet Management System
 
 A modern, role-based timesheet management application built with Next.js, TypeScript, Tailwind CSS, and Shadcn/UI components.
 
@@ -57,8 +57,8 @@ A modern, role-based timesheet management application built with Next.js, TypeSc
 1. Clone the repository:
 
 ```bash
-git clone <repository-url>
-cd tiktiktow
+git clone https://github.com/adityaupadhyay-tech/TikTikTow.git
+cd TikTikTow
 ```
 
 2. Install dependencies:

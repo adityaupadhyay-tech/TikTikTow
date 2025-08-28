@@ -86,7 +86,7 @@ export default function SettingsPage() {
     )
   }
 
-  const [active, setActive] = useState<'general'|'clients'|'companies'|'departments'|'employees'|'holidays'|'working-hours'|'roles'|'notifications'|'billing'|'integrations'>('general')
+  const [active, setActive] = useState<'general'|'clients'|'companies'|'departments'|'employees'|'leave'|'roles'|'notifications'|'billing'|'integrations'|'workflow'>('general')
 
   const SidebarLink = ({ id, label }: { id: typeof active; label: string }) => (
     <button
@@ -99,6 +99,16 @@ export default function SettingsPage() {
   )
 
   const [clientModalOpen, setClientModalOpen] = useState(false)
+  const [holidayModalOpen, setHolidayModalOpen] = useState(false)
+  const [leaveRuleModalOpen, setLeaveRuleModalOpen] = useState(false)
+  const [employeeLeaveModalOpen, setEmployeeLeaveModalOpen] = useState(false)
+  const [carryForwardEnabled, setCarryForwardEnabled] = useState(true)
+  const [defaultAnnualLeave, setDefaultAnnualLeave] = useState(20)
+  const [maxCarryForward, setMaxCarryForward] = useState(10)
+  const [requireSignature, setRequireSignature] = useState(true)
+  const [requireSupervisor, setRequireSupervisor] = useState(true)
+  const [backupSupervisor, setBackupSupervisor] = useState('Jane Smith')
+  const [workflowModalOpen, setWorkflowModalOpen] = useState(false)
 
   return (
     <Layout userRole={currentUser.role} userName={currentUser.name}>
@@ -113,12 +123,12 @@ export default function SettingsPage() {
               <SidebarLink id="companies" label="Companies" />
               <SidebarLink id="departments" label="Departments" />
               <SidebarLink id="employees" label="Employees" />
-              <SidebarLink id="holidays" label="Holidays" />
-              <SidebarLink id="working-hours" label="Working Hours" />
+              <SidebarLink id="leave" label="Leave & Holiday Management" />
               <SidebarLink id="roles" label="Roles & Permissions" />
               <SidebarLink id="notifications" label="Notifications" />
               <SidebarLink id="billing" label="Billing & Invoicing" />
               <SidebarLink id="integrations" label="Integrations" />
+              <SidebarLink id="workflow" label="Timesheet Approval Workflow" />
             </div>
           </aside>
           <section className="md:col-span-9 lg:col-span-10 space-y-6">
@@ -163,6 +173,124 @@ export default function SettingsPage() {
           </CardFooter>
         </Section>
           </TabsContent>
+          <Modal open={holidayModalOpen} title="Add Holiday" onClose={()=>setHolidayModalOpen(false)}>
+            <div className="grid grid-cols-1 gap-3 text-sm">
+              <div>
+                <label className="mb-1 block text-sm font-medium">Holiday Name</label>
+                <input className="w-full rounded-md border px-3 py-2" placeholder="Diwali" />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Date</label>
+                <input type="date" className="w-full rounded-md border px-3 py-2" />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Company</label>
+                <select className="w-full rounded-md border px-3 py-2">
+                  <option>TechCorp India Pvt Ltd</option>
+                  <option>TechCorp US Inc.</option>
+                  <option>FinServe UK Ltd</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Type</label>
+                <select className="w-full rounded-md border px-3 py-2">
+                  <option>Paid</option>
+                  <option>Optional</option>
+                </select>
+              </div>
+            </div>
+          </Modal>
+          <Modal open={leaveRuleModalOpen} title="Add Leave Rule" onClose={()=>setLeaveRuleModalOpen(false)}>
+            <div className="grid grid-cols-1 gap-3 text-sm">
+              <div>
+                <label className="mb-1 block text-sm font-medium">Company</label>
+                <select className="w-full rounded-md border px-3 py-2">
+                  <option>TechCorp India Pvt Ltd</option>
+                  <option>TechCorp US Inc.</option>
+                  <option>FinServe UK Ltd</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Default Limit</label>
+                <input type="number" className="w-full rounded-md border px-3 py-2" placeholder="20" />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Enable Carry Forward</span>
+                <button type="button" className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${carryForwardEnabled ? 'bg-green-600' : 'bg-gray-300'}`} onClick={()=>setCarryForwardEnabled(v=>!v)}>
+                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${carryForwardEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
+                </button>
+              </div>
+            </div>
+          </Modal>
+          <Modal open={employeeLeaveModalOpen} title="Edit Employee Leave" onClose={()=>setEmployeeLeaveModalOpen(false)}>
+            <div className="grid grid-cols-1 gap-3 text-sm">
+              <div>
+                <label className="mb-1 block text-sm font-medium">Employee</label>
+                <select className="w-full rounded-md border px-3 py-2">
+                  <option>John Doe</option>
+                  <option>Jane Smith</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Override Leave Limit</label>
+                <input type="number" className="w-full rounded-md border px-3 py-2" placeholder="e.g. 25" />
+              </div>
+            </div>
+          </Modal>
+          <TabsContent value="workflow" className="space-y-6">
+        <Section title="Timesheet Approval Workflow" description="Configure signatures and supervisor approvals">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Submission</CardTitle>
+                <CardDescription>Employee signature requirement</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-2">
+                  <ToggleRow label="Require signature before submit" checked={requireSignature} onChange={()=>setRequireSignature(v=>!v)} />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Supervisor Review</CardTitle>
+                <CardDescription>Approval process and backups</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-3">
+                  <ToggleRow label="Require supervisor approval" checked={requireSupervisor} onChange={()=>setRequireSupervisor(v=>!v)} />
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">Backup Supervisor</label>
+                    <select className="w-full rounded-md border px-3 py-2 text-sm" value={backupSupervisor} onChange={(e)=>setBackupSupervisor(e.target.value)}>
+                      <option>Jane Smith</option>
+                      <option>Michael Brown</option>
+                      <option>Emily Davis</option>
+                    </select>
+                  </div>
+                  <div className="text-sm text-gray-600">Review options: Approve / Request Changes</div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <div className="flex justify-end">
+            <Button variant="outline" type="button" onClick={()=>setWorkflowModalOpen(true)}>Configure Workflow</Button>
+          </div>
+        </Section>
+          </TabsContent>
+          <Modal open={workflowModalOpen} title="Configure Workflow" onClose={()=>setWorkflowModalOpen(false)}>
+            <div className="space-y-3 text-sm">
+              <ToggleRow label="Require signature before submit" checked={requireSignature} onChange={()=>setRequireSignature(v=>!v)} />
+              <ToggleRow label="Require supervisor approval" checked={requireSupervisor} onChange={()=>setRequireSupervisor(v=>!v)} />
+              <div>
+                <label className="mb-1 block text-sm font-medium">Backup Supervisor</label>
+                <select className="w-full rounded-md border px-3 py-2 text-sm" value={backupSupervisor} onChange={(e)=>setBackupSupervisor(e.target.value)}>
+                  <option>Jane Smith</option>
+                  <option>Michael Brown</option>
+                  <option>Emily Davis</option>
+                </select>
+              </div>
+            </div>
+          </Modal>
 
           <TabsContent value="billing" className="space-y-6">
         <Section title="Billing & Invoicing Settings" description="Defaults for billing and invoices">
@@ -244,13 +372,13 @@ export default function SettingsPage() {
               <div className="font-medium mb-2">Permissions Matrix</div>
               <div className="grid grid-cols-5 gap-2 text-xs sm:text-sm">
                 <div></div>
-                {['View','Edit','Approve','Delete'].map(p => (
+                {['View','Edit','Approve','Delete','Submit Timesheet','Approve Timesheet','Edit Timesheet','Override Leave Policy'].map(p => (
                   <div key={p} className="text-gray-600 font-medium">{p}</div>
                 ))}
                 {['Admin','Manager','Employee','Contractor'].map(role => (
                   <>
                     <div key={role} className="font-medium">{role}</div>
-                    {['view','edit','approve','delete'].map(k => (
+                    {['view','edit','approve','delete','submit','approve_ts','edit_ts','override_leave'].map(k => (
                       <label key={`${role}-${k}`} className="flex items-center justify-center">
                         <input type="checkbox" className="h-4 w-4" defaultChecked={role !== 'Contractor'} />
                       </label>
@@ -287,38 +415,10 @@ export default function SettingsPage() {
         </Section>
           </TabsContent>
         
-          <TabsContent value="working-hours" className="space-y-6">
-        <Section title="Working Hours" description="Templates and assignments to projects/departments">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-            <div className="rounded-md border p-3">
-              <div className="font-medium">Full-time</div>
-              <div className="text-gray-600">9 AM – 6 PM</div>
-            </div>
-            <div className="rounded-md border p-3">
-              <div className="font-medium">Part-time</div>
-              <div className="text-gray-600">10 AM – 2 PM</div>
-            </div>
-            <div className="rounded-md border p-3">
-              <div className="font-medium">Shift-based</div>
-              <div className="text-gray-600">Morning (7–3), Evening (3–11), Night (11–7)</div>
-            </div>
-            <div className="rounded-md border p-3">
-              <div className="font-medium">Flexible</div>
-              <div className="text-gray-600">Employee-defined</div>
-            </div>
-          </div>
-          <CardFooter className="px-0 pt-6">
-            <div className="ml-auto flex gap-2">
-              <Button variant="outline" type="button">Add Template</Button>
-              <Button type="button">Save</Button>
-            </div>
-          </CardFooter>
-        </Section>
-          </TabsContent>
-          <TabsContent value="holidays" className="space-y-6">
-        <Section title="Holidays" description="Select applicable holiday categories and assign to companies">
+          <TabsContent value="leave" className="space-y-6">
+        <Section title="Leave & Holiday Management" description="Company calendars, leave policies, and overrides">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-            {['Public Holidays','Company-Specific Holidays','Optional Leave','Paid Leave','Unpaid Leave'].map((label) => (
+            {['Paid Holidays','Optional Holidays','Sick Leave','Unpaid Leave'].map((label) => (
               <label key={label} className="flex items-center gap-2">
                 <input type="checkbox" className="h-4 w-4" defaultChecked={label === 'Public Holidays'} />
                 <span>{label}</span>
@@ -327,16 +427,66 @@ export default function SettingsPage() {
           </div>
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-medium">Assign to Company</label>
+              <label className="mb-1 block text-sm font-medium">Assign Holiday to Company</label>
               <select className="w-full rounded-md border px-3 py-2 text-sm">
                 <option>TechCorp India Pvt Ltd</option>
                 <option>TechCorp US Inc.</option>
                 <option>FinServe UK Ltd</option>
               </select>
             </div>
-            <div className="flex items-end">
-              <Button variant="outline" type="button">Assign</Button>
+            <div className="flex items-end gap-2">
+              <Button variant="outline" type="button" onClick={() => setHolidayModalOpen(true)}>Add Holiday</Button>
+              <Button variant="outline" type="button" onClick={() => setLeaveRuleModalOpen(true)}>Add Leave Rule</Button>
             </div>
+          </div>
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Company Leave Policy</CardTitle>
+                <CardDescription>Defaults applied to all employees</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-3 text-sm">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-1 block text-sm font-medium">Default Annual Leave</label>
+                      <input type="number" className="w-full rounded-md border px-3 py-2" value={defaultAnnualLeave} onChange={(e)=>setDefaultAnnualLeave(parseInt(e.target.value||'0'))} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium">Max Carry Forward</label>
+                      <input type="number" className="w-full rounded-md border px-3 py-2" value={maxCarryForward} onChange={(e)=>setMaxCarryForward(parseInt(e.target.value||'0'))} />
+                    </div>
+                  </div>
+                  <ToggleRow label="Enable Carry Forward" checked={carryForwardEnabled} onChange={()=>setCarryForwardEnabled(v=>!v)} />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Employee Overrides</CardTitle>
+                <CardDescription>Custom limits per employee</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-3 text-sm">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-1 block text-sm font-medium">Employee</label>
+                      <select className="w-full rounded-md border px-3 py-2">
+                        <option>John Doe</option>
+                        <option>Jane Smith</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium">Leave Limit Override</label>
+                      <input type="number" className="w-full rounded-md border px-3 py-2" placeholder="e.g. 25" />
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button variant="outline" type="button" onClick={()=>setEmployeeLeaveModalOpen(true)}>Edit Employee Leave</Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
           <CardFooter className="px-0 pt-6">
             <div className="ml-auto flex gap-2">

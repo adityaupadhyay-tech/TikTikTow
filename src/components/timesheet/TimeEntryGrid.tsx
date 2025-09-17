@@ -120,7 +120,7 @@ export default function TimeEntryGrid({
       lastWeekRef.current = ''
       lastEntriesRef.current = entries
     }
-  }, [entries, gridRows, parentGridRows]) // Only trigger when entries change and grid is empty
+  }, [entries?.length, gridRows?.length, parentGridRows?.length]) // Use length to avoid object reference issues
 
   // Initialize grid with existing entries when needed
   const initializeGridWithEntries = () => {
@@ -201,26 +201,26 @@ export default function TimeEntryGrid({
   // Handle company switches by clearing grid and reinitializing
   useEffect(() => {
     // Check if this is a company switch by comparing entry counts
-    const isCompanySwitch = entries.length !== lastEntriesRef.current.length && 
-                           entries.length > 0 && 
+    const isCompanySwitch = entries?.length !== lastEntriesRef.current.length && 
+                           entries?.length > 0 && 
                            lastEntriesRef.current.length > 0
     
     if (isCompanySwitch) {
       console.log('Company switch detected - clearing and reinitializing grid', {
         previousEntries: lastEntriesRef.current.length,
-        currentEntries: entries.length
+        currentEntries: entries?.length
       })
       setGridRows([])
       setPendingAutoSaves([])
       lastWeekRef.current = ''
-      lastEntriesRef.current = entries
+      lastEntriesRef.current = entries || []
       
       // Reinitialize with new company's entries
       setTimeout(() => {
         initializeGridWithEntries()
       }, 0)
     }
-  }, [entries]) // Only trigger when entries change
+  }, [entries?.length]) // Only trigger when entries length changes
 
   // Notify parent when selectedDate changes
   useEffect(() => {
@@ -304,7 +304,7 @@ export default function TimeEntryGrid({
       setPendingAutoSaves([])
       setIsAutoSaving(false)
     }
-  }, [pendingAutoSaves, entries, onSave, onUpdate, onDelete])
+  }, [pendingAutoSaves?.length, entries?.length, onSave, onUpdate, onDelete])
 
   // Initialize grid with current week's entries grouped by project/task
   useEffect(() => {
@@ -392,7 +392,7 @@ export default function TimeEntryGrid({
       console.log('Grid reinitialized with rows:', rows.length, rows.map(r => ({ id: r.id, isNew: r.isNew, projectId: r.projectId, description: r.description })))
       return rows
     })
-  }, [entries, selectedDate, isAutoSaving])
+  }, [entries?.length, selectedDate, isAutoSaving])
 
   // Cleanup timeouts on unmount
   useEffect(() => {

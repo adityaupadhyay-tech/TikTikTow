@@ -64,12 +64,6 @@ function TimesheetContent() {
                   </div>
                 )}
               </div>
-              <p className="text-gray-600">
-                Track your work hours using the grid-based time entry system
-                {selectedCompany && (
-                  <span className="text-blue-600 font-medium"> for {selectedCompany.name}</span>
-                )}
-              </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button 
@@ -144,6 +138,7 @@ function TimesheetContent() {
                 <TimeEntryGrid
                   projects={projects}
                   entries={entries}
+                  gridRows={gridRows}
                   onSave={addEntry}
                   onUpdate={updateEntry}
                   onDelete={deleteEntry}

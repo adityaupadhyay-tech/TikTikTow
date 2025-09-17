@@ -72,10 +72,19 @@ export default function TimeEntryGrid({
 
   // Sync local gridRows with parent gridRows when component mounts or parent changes
   useEffect(() => {
-    if (parentGridRows && parentGridRows.length > 0) {
+    console.log('Sync effect triggered:', {
+      parentGridRowsLength: parentGridRows?.length || 0,
+      localGridRowsLength: gridRows.length,
+      shouldSync: parentGridRows && parentGridRows.length > 0 && gridRows.length === 0
+    })
+    
+    // Only sync if parent has grid rows and local grid is empty (component just mounted)
+    // This preserves the exact state when returning from tab switches
+    if (parentGridRows && parentGridRows.length > 0 && gridRows.length === 0) {
+      console.log('Syncing with parent grid rows:', parentGridRows.length, 'rows')
       setGridRows(parentGridRows)
     }
-  }, [parentGridRows])
+  }, [parentGridRows, gridRows.length])
   const [includeSaturday, setIncludeSaturday] = useState(false)
   const [includeSunday, setIncludeSunday] = useState(false)
   const saveTimeoutRef = useRef<{ [key: string]: NodeJS.Timeout }>({})
@@ -93,23 +102,25 @@ export default function TimeEntryGrid({
 
   // Clear grid only when company changes (not when entries are added/updated)
   useEffect(() => {
-    // Only clear grid if we have entries but no grid rows (indicating a company switch)
-    // or if the entries array is completely different (different company)
+    // Only clear grid if we have entries but no grid rows AND no parent grid rows
+    // This prevents clearing when returning from tab switches (where parent has preserved state)
     const hasEntries = entries && entries.length > 0
     const hasGridRows = gridRows && gridRows.length > 0
-    const isCompanySwitch = hasEntries && !hasGridRows
+    const hasParentGridRows = parentGridRows && parentGridRows.length > 0
+    const isCompanySwitch = hasEntries && !hasGridRows && !hasParentGridRows
     
     if (isCompanySwitch) {
       console.log('Company switch detected - clearing grid rows', {
         entriesCount: entries.length,
-        gridRowsCount: gridRows.length
+        gridRowsCount: gridRows.length,
+        parentGridRowsCount: parentGridRows.length
       })
       setGridRows([])
       setPendingAutoSaves([])
       lastWeekRef.current = ''
       lastEntriesRef.current = entries
     }
-  }, [entries, gridRows]) // Only trigger when entries change and grid is empty
+  }, [entries, gridRows, parentGridRows]) // Only trigger when entries change and grid is empty
 
   // Initialize grid with existing entries when needed
   const initializeGridWithEntries = () => {
@@ -180,8 +191,9 @@ export default function TimeEntryGrid({
 
   // Initialize grid only when component mounts or when selectedDate changes (not when entries change)
   useEffect(() => {
-    // Only initialize if grid is empty and we have entries
-    if (gridRows.length === 0 && entries && entries.length > 0) {
+    // Only initialize if grid is empty, we have entries, AND we don't have parent grid rows
+    // This prevents reinitialization when returning from tab switches
+    if (gridRows.length === 0 && entries && entries.length > 0 && parentGridRows.length === 0) {
       initializeGridWithEntries()
     }
   }, [selectedDate]) // Only trigger when selectedDate changes, not when entries change

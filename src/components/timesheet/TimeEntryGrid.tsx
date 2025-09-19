@@ -72,10 +72,19 @@ export default function TimeEntryGrid({
 
   // Sync local gridRows with parent gridRows when component mounts or parent changes
   useEffect(() => {
-    if (parentGridRows && parentGridRows.length > 0) {
+    console.log('Sync effect triggered:', {
+      parentGridRowsLength: parentGridRows?.length || 0,
+      localGridRowsLength: gridRows.length,
+      shouldSync: parentGridRows && parentGridRows.length > 0 && gridRows.length === 0
+    })
+    
+    // Only sync if parent has grid rows and local grid is empty (component just mounted)
+    // This preserves the exact state when returning from tab switches
+    if (parentGridRows && parentGridRows.length > 0 && gridRows.length === 0) {
+      console.log('Syncing with parent grid rows:', parentGridRows.length, 'rows')
       setGridRows(parentGridRows)
     }
-  }, [parentGridRows])
+  }, [parentGridRows, gridRows.length])
   const [includeSaturday, setIncludeSaturday] = useState(false)
   const [includeSunday, setIncludeSunday] = useState(false)
   
@@ -150,23 +159,25 @@ export default function TimeEntryGrid({
 
   // Clear grid only when company changes (not when entries are added/updated)
   useEffect(() => {
-    // Only clear grid if we have entries but no grid rows (indicating a company switch)
-    // or if the entries array is completely different (different company)
+    // Only clear grid if we have entries but no grid rows AND no parent grid rows
+    // This prevents clearing when returning from tab switches (where parent has preserved state)
     const hasEntries = entries && entries.length > 0
     const hasGridRows = gridRows && gridRows.length > 0
-    const isCompanySwitch = hasEntries && !hasGridRows
+    const hasParentGridRows = parentGridRows && parentGridRows.length > 0
+    const isCompanySwitch = hasEntries && !hasGridRows && !hasParentGridRows
     
     if (isCompanySwitch) {
       console.log('Company switch detected - clearing grid rows', {
         entriesCount: entries.length,
-        gridRowsCount: gridRows.length
+        gridRowsCount: gridRows.length,
+        parentGridRowsCount: parentGridRows.length
       })
       setGridRows([])
       setPendingAutoSaves([])
       lastWeekRef.current = ''
       lastEntriesRef.current = entries
     }
-  }, [entries, gridRows]) // Only trigger when entries change and grid is empty
+  }, [entries?.length, gridRows?.length, parentGridRows?.length]) // Use length to avoid object reference issues
 
   // Initialize grid with existing entries when needed
   const initializeGridWithEntries = () => {
@@ -237,8 +248,9 @@ export default function TimeEntryGrid({
 
   // Initialize grid only when component mounts or when selectedDate changes (not when entries change)
   useEffect(() => {
-    // Only initialize if grid is empty and we have entries
-    if (gridRows.length === 0 && entries && entries.length > 0) {
+    // Only initialize if grid is empty, we have entries, AND we don't have parent grid rows
+    // This prevents reinitialization when returning from tab switches
+    if (gridRows.length === 0 && entries && entries.length > 0 && parentGridRows.length === 0) {
       initializeGridWithEntries()
     }
   }, [selectedDate]) // Only trigger when selectedDate changes, not when entries change
@@ -246,26 +258,26 @@ export default function TimeEntryGrid({
   // Handle company switches by clearing grid and reinitializing
   useEffect(() => {
     // Check if this is a company switch by comparing entry counts
-    const isCompanySwitch = entries.length !== lastEntriesRef.current.length && 
-                           entries.length > 0 && 
+    const isCompanySwitch = entries?.length !== lastEntriesRef.current.length && 
+                           entries?.length > 0 && 
                            lastEntriesRef.current.length > 0
     
     if (isCompanySwitch) {
       console.log('Company switch detected - clearing and reinitializing grid', {
         previousEntries: lastEntriesRef.current.length,
-        currentEntries: entries.length
+        currentEntries: entries?.length
       })
       setGridRows([])
       setPendingAutoSaves([])
       lastWeekRef.current = ''
-      lastEntriesRef.current = entries
+      lastEntriesRef.current = entries || []
       
       // Reinitialize with new company's entries
       setTimeout(() => {
         initializeGridWithEntries()
       }, 0)
     }
-  }, [entries]) // Only trigger when entries change
+  }, [entries?.length]) // Only trigger when entries length changes
 
   // Notify parent when selectedDate changes
   useEffect(() => {
@@ -349,7 +361,7 @@ export default function TimeEntryGrid({
       setPendingAutoSaves([])
       setIsAutoSaving(false)
     }
-  }, [pendingAutoSaves, entries, onSave, onUpdate, onDelete])
+  }, [pendingAutoSaves?.length, entries?.length, onSave, onUpdate, onDelete])
 
   // Initialize grid with current week's entries grouped by project/task
   useEffect(() => {
@@ -437,7 +449,7 @@ export default function TimeEntryGrid({
       console.log('Grid reinitialized with rows:', rows.length, rows.map(r => ({ id: r.id, isNew: r.isNew, projectId: r.projectId, description: r.description })))
       return rows
     })
-  }, [entries, selectedDate, isAutoSaving])
+  }, [entries?.length, selectedDate, isAutoSaving])
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -806,8 +818,13 @@ export default function TimeEntryGrid({
       cleaned = beforeColon + ':' + afterColon
     }
     
-    // Only auto-format on blur or when user stops typing, not during onChange
-    if (!cleaned.includes(':') && !isOnChange) {
+    // During typing (onChange), just return the cleaned input without conversion
+    if (isOnChange) {
+      return cleaned
+    }
+    
+    // Only auto-format on blur (Enter/Tab), not during typing
+    if (!cleaned.includes(':')) {
       if (cleaned.length === 1) {
         // Single digit: "8" -> "8:00"
         cleaned = cleaned + ':00'
@@ -818,20 +835,30 @@ export default function TimeEntryGrid({
         // Three digits: "830" -> "8:30"
         cleaned = cleaned.slice(0, 1) + ':' + cleaned.slice(1)
       } else if (cleaned.length === 4) {
-        // Four digits: Check if it's a valid hour format
-        const lastTwoDigits = parseInt(cleaned.slice(2, 4))
+        // Four digits: "1212" -> "12:12"
+        const hours = parseInt(cleaned.slice(0, 2))
+        const minutes = parseInt(cleaned.slice(2, 4))
         
-        // If last two digits are valid minutes (0-59), treat first two as hours
-        if (lastTwoDigits <= 59) {
-          // "1001" -> "10:01", "1200" -> "12:00", "0830" -> "08:30"
-          cleaned = cleaned.slice(0, 2) + ':' + cleaned.slice(2)
+        // Validate and format
+        if (hours > 23) {
+          cleaned = '23:59'
+        } else if (minutes > 59) {
+          cleaned = hours.toString().padStart(2, '0') + ':59'
         } else {
-          // "1299" -> "1:29" (since 99 > 59 minutes)
-          cleaned = cleaned.slice(0, 1) + ':' + cleaned.slice(1, 3)
+          cleaned = hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0')
         }
       } else if (cleaned.length >= 5) {
-        // Five or more digits: "11305" -> "113:05"
-        cleaned = cleaned.slice(0, 3) + ':' + cleaned.slice(3, 5)
+        // Five or more digits: "12305" -> "12:05" (last 2 as minutes)
+        const hours = parseInt(cleaned.slice(0, -2))
+        const minutes = parseInt(cleaned.slice(-2))
+        
+        if (hours > 23) {
+          cleaned = '23:59'
+        } else if (minutes > 59) {
+          cleaned = hours.toString().padStart(2, '0') + ':59'
+        } else {
+          cleaned = hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0')
+        }
       }
     }
     
@@ -839,29 +866,22 @@ export default function TimeEntryGrid({
     if (cleaned.includes(':')) {
       const parts = cleaned.split(':')
       if (parts.length === 2) {
-        let hours = parts[0]
-        let minutes = parts[1]
+        let hours = parseInt(parts[0]) || 0
+        let minutes = parseInt(parts[1]) || 0
         
-        // Limit minutes to 2 digits and max 59
-        if (minutes.length > 2) {
-          minutes = minutes.slice(0, 2)
-        }
-        if (minutes.length === 2) {
-          const m = parseInt(minutes)
-          if (m > 59) minutes = '59'
+        // Cap minutes at 59
+        if (minutes > 59) {
+          minutes = 59
         }
         
-        // Limit hours to maximum 24 hours
-        const h = parseInt(hours)
-        if (h > 24) {
-          hours = '24'
-        }
-        if (h === 24 && parseInt(minutes) > 0) {
-          // If 24 hours, minutes must be 00
-          minutes = '00'
+        // Cap hours at 23 (prevent exceeding 23:59)
+        if (hours > 23) {
+          hours = 23
+          minutes = 59
         }
         
-        cleaned = hours + ':' + minutes
+        // Format with leading zeros
+        cleaned = hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0')
       }
     }
     
@@ -1016,40 +1036,14 @@ export default function TimeEntryGrid({
                             // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+Z
                             const isCtrlKey = e.ctrlKey && ['a', 'c', 'v', 'x', 'z'].includes(e.key.toLowerCase())
                             
-                            // Prevent typing if it would exceed 24:00
-                            if (isNumber) {
-                              const currentValue = e.currentTarget.value
-                              const cursorPosition = e.currentTarget.selectionStart || 0
-                              const newValue = currentValue.slice(0, cursorPosition) + e.key + currentValue.slice(cursorPosition)
-                              
-                              // Check if the new value would exceed 24:00
-                              if (newValue.includes(':')) {
-                                const [hours, minutes] = newValue.split(':')
-                                const h = parseInt(hours) || 0
-                                const m = parseInt(minutes) || 0
-                                
-                                if (h > 24 || (h === 24 && m > 0)) {
-                                  e.preventDefault()
-                                  return
-                                }
-                              } else {
-                                // If no colon yet, check if hours would exceed 24
-                                const h = parseInt(newValue) || 0
-                                if (h > 24) {
-                                  e.preventDefault()
-                                  return
-                                }
-                              }
-                            }
-                            
+                            // Only prevent non-numeric, non-colon, non-allowed keys
                             if (!isNumber && !isColon && !allowedKeys.includes(e.key) && !isCtrlKey) {
                               e.preventDefault()
                             }
                           }}
                           className="w-full px-2 py-2 border border-gray-200 rounded text-sm focus:border-blue-500 focus:ring-blue-500 text-center h-10"
                           placeholder="hh:mm"
-                          title="Enter time in hh:mm format (e.g., 8:30, 12:45). Maximum time is 24:00."
-                          maxLength={6}
+                          title="Enter time in hh:mm format (e.g., 8:30, 12:45). Maximum time is 23:59."
                         />
                       </td>
                     )

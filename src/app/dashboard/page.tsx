@@ -21,6 +21,8 @@ export default function DashboardPage() {
     email: 'john.doe@company.com'
   })
 
+  // No pay cycle UI here; moved to Timesheet page
+
   const getDashboardContent = () => {
     switch (currentUser.role) {
       case 'admin':
@@ -254,6 +256,7 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
+
     </Layout>
   )
 }

@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Layout from '@/components/Layout'
-import { UserRole } from '@/types'
+import { User, UserRole, PayCycle } from '@/types'
 import { TimesheetProvider, useTimesheet } from '@/contexts/TimesheetContext'
 import TimeEntryGrid from '@/components/timesheet/TimeEntryGrid'
 import TimesheetSummary from '@/components/timesheet/TimesheetSummary'
@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Send, Download, Calendar, FolderOpen } from 'lucide-react'
 import { TimeEntry } from '@/types'
 import ExportModal from '@/components/timesheet/ExportModal'
+import PayCycleManagerModal from '@/components/PayCycleManagerModal'
+import { fetchUsersByPayCycle, subscribeAssignments } from '@/lib/payCycles'
 
 function TimesheetContent() {
   const {
@@ -33,6 +35,9 @@ function TimesheetContent() {
   const [showExportModal, setShowExportModal] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [gridRows, setGridRows] = useState<any[]>([])
+  const [payCycle, setPayCycle] = useState<PayCycle>('Monthly')
+  const [usersForCycle, setUsersForCycle] = useState<User[]>([])
+  const [managerOpen, setManagerOpen] = useState(false)
 
 
 
@@ -47,6 +52,18 @@ function TimesheetContent() {
   const handleGridDataChange = (newGridRows: any[]) => {
     setGridRows(newGridRows)
   }
+
+  const canQuery = useMemo(() => Boolean(selectedCompany?.id && payCycle), [selectedCompany?.id, payCycle])
+  const refreshUsers = () => {
+    if (!canQuery || !selectedCompany?.id) return
+    fetchUsersByPayCycle(selectedCompany.id, payCycle).then(setUsersForCycle).catch(console.error)
+  }
+  useEffect(() => { refreshUsers() }, [selectedCompany?.id, payCycle])
+  useEffect(() => {
+    if (!selectedCompany?.id) return
+    const unsubscribe = subscribeAssignments(selectedCompany.id, () => refreshUsers())
+    return () => unsubscribe?.()
+  }, [selectedCompany?.id])
 
   return (
     <div className="min-h-screen bg-gray-50/50">
@@ -82,9 +99,9 @@ function TimesheetContent() {
             </div>
           </div>
           
-          {/* Company Selector */}
+          {/* Company + Pay Cycle Controls */}
           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-6 flex-wrap">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-blue-500"></div>
                 <span className="text-sm font-semibold text-blue-900">Active Company:</span>
@@ -110,6 +127,54 @@ function TimesheetContent() {
                   </svg>
                 </div>
               </div>
+
+              {/* Pay Cycle Dropdown */}
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                <span className="text-sm font-semibold text-blue-900">Pay Cycle:</span>
+              </div>
+              <div className="relative">
+                <select
+                  value={payCycle}
+                  onChange={(e) => setPayCycle(e.target.value as PayCycle)}
+                  className="appearance-none px-4 py-2.5 pr-10 border border-blue-300 rounded-lg text-sm font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer min-w-[160px]"
+                >
+                  {(['Daily', 'Weekly', 'Biweekly', 'Monthly'] as PayCycle[]).map(pc => (
+                    <option key={pc} value={pc}>{pc}</option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg className="h-4 w-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+
+              {/* Users in Cycle Dropdown */}
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                <span className="text-sm font-semibold text-blue-900">Users:</span>
+              </div>
+              <div className="relative">
+                <select className="appearance-none px-4 py-2.5 pr-10 border border-blue-300 rounded-lg text-sm font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer min-w-[220px]">
+                  {usersForCycle.map(u => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                  {usersForCycle.length === 0 && (
+                    <option>No users assigned</option>
+                  )}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg className="h-4 w-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+
+              {/* Manage Button */}
+              <Button onClick={() => setManagerOpen(true)} className="ml-auto">
+                Manage Pay Cycle
+              </Button>
             </div>
           </div>
         </div>
@@ -170,6 +235,16 @@ function TimesheetContent() {
           entries={entries}
           projects={projects}
           onClose={closeExportModal}
+        />
+      )}
+
+      {/* Pay Cycle Manager Modal */}
+      {selectedCompany?.id && (
+        <PayCycleManagerModal
+          isOpen={managerOpen}
+          onClose={() => { setManagerOpen(false); refreshUsers() }}
+          companyId={selectedCompany.id}
+          payCycle={payCycle}
         />
       )}
     </div>

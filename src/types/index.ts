@@ -88,3 +88,14 @@ export interface TimeTrackingState {
   startTime?: Date;
   elapsedTime: number; // in seconds
 }
+
+// Pay cycle types and assignments
+export type PayCycle = 'Daily' | 'Weekly' | 'Biweekly' | 'Monthly'
+
+export interface PayCycleAssignment {
+  id: string;
+  userId: string;
+  companyId: string;
+  payCycle: PayCycle;
+  createdAt?: string;
+}
